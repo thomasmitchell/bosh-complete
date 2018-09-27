@@ -6,6 +6,14 @@ import (
 	"strings"
 )
 
+//Keeps command completion from automatically adding a space to move
+// to the next token
+var dontAddSpace bool
+
+//Keeps command completion from filtering out command completions that
+// don't start with the current token
+var dontFilterPrefix bool
+
 type compContext struct {
 	CurrentToken string
 	Command      string
@@ -38,10 +46,10 @@ func (c compContext) Complete() ([]string, error) {
 		compFn = compCommandNames
 	} else {
 		if cmd, found := commands.Find(c.Command); found {
-			if len(c.Args) < len(cmd.ArgComps) {
+			if len(c.Args) < len(cmd.Args) {
 				position := len(c.Args)
 				log.Write("Completing positional arg for command `%s' position %d (0 indexed)", c.Command, position)
-				compFn = cmd.ArgComps[position]
+				compFn = cmd.Args[position]
 			}
 		}
 	}
@@ -56,14 +64,22 @@ func (c compContext) Complete() ([]string, error) {
 		return nil, err
 	}
 
-	log.Write("Completion candidates: \n---START---\n%s\n---END---\n", strings.Join(candidates, "\n"))
+	//log.Write("Completion candidates: \n---START---\n%s\n---END---\n", strings.Join(candidates, "\n"))
 
 	ret := []string{}
 	for _, val := range candidates {
-		if strings.HasPrefix(val, c.CurrentToken) {
+		if strings.ContainsAny(val, " \t\n\r") {
+			val = fmt.Sprintf(`"%s"`, val)
+		}
+		if dontFilterPrefix || strings.HasPrefix(val, c.CurrentToken) {
 			ret = append(ret, val)
 		}
 	}
+
+	if len(ret) == 1 && !dontAddSpace {
+		ret[0] = fmt.Sprintf("%s ", ret[0])
+	}
+
 	log.Write("Completion return: \n---START---\n%s\n---END---\n", strings.Join(ret, "\n"))
 	return ret, nil
 }
@@ -89,7 +105,6 @@ func doComplete(boshArgs []string) {
 	}
 
 	response := strings.Join(results, "\n")
-	log.Write(response)
 	fmt.Print(response)
 }
 
@@ -113,7 +128,7 @@ func parseContext(args []string) compContext {
 			//Check if value or not
 			f := flags[token]
 			ret.CurrentFlag = "--" + f.Long
-			if !f.TakesValue {
+			if f.Complete == nil {
 				log.Write("current flag is switch: %s", ret.CurrentFlag)
 				ret.Switches = append(ret.Switches)
 				ret.CurrentFlag = ""

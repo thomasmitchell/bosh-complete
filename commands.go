@@ -10,7 +10,6 @@ func (c commandList) Find(name string) (ret command, found bool) {
 
 	for left < right {
 		mid := (left + right) / 2
-		log.Write("left: %d, right: %d, mid: %d", left, right, mid)
 		if commands[mid].Name > name {
 			right = mid
 		} else if commands[mid].Name < name {
@@ -32,14 +31,19 @@ func (c *commandList) Populate() {
 
 	command{
 		Name: "alias-env",
+		Args: []compFunc{compEnvAliases},
 	}.Insert()
 
 	command{
 		Name: "attach-disk",
+		Flags: []flag{
+			{Long: "disk-properties", Complete: compNoop},
+		},
 	}.Insert()
 
 	command{
-		Name: "blobs",
+		Name:  "blobs",
+		Flags: []flag{{Long: "dir", Complete: compDirs}},
 	}.Insert()
 
 	command{
@@ -56,6 +60,7 @@ func (c *commandList) Populate() {
 		Flags: []flag{
 			{Long: "auto", Short: 'a'},
 			{Long: "report", Short: 'r'},
+			{Long: "resolution", Complete: compNoop},
 		},
 	}.Insert().Alias("cck").Alias("cloudcheck")
 
@@ -66,14 +71,22 @@ func (c *commandList) Populate() {
 	command{
 		Name: "config",
 		Flags: []flag{
-			{Long: "type", Complete: compEnum("cloud", "runtime", "cpi"), TakesValue: true},
+			//TODO: name -> config names
+			{Long: "name", Complete: compNoop},
+			{Long: "type", Complete: compEnum("cloud", "runtime", "cpi")},
+		},
+		Args: []compFunc{
+			compNoop, //TODO: Config ids
 		},
 	}.Insert().Alias("c")
 
 	command{
 		Name: "configs",
 		Flags: []flag{
-			{Long: "type", Complete: compEnum("cloud", "runtime", "cpi"), TakesValue: true},
+			//TODO: name -> config names
+			{Long: "name", Complete: compNoop},
+			{Long: "type", Complete: compEnum("cloud", "runtime", "cpi")},
+			{Long: "recent", Complete: compNoop},
 		},
 	}.Insert().Alias("cs")
 
@@ -83,13 +96,32 @@ func (c *commandList) Populate() {
 
 	command{
 		Name: "create-env",
+		Flags: []flag{
+			//TODO: var -> <vars in manifest> = noop
+			{Long: "var", Short: 'v', Complete: compNoop},
+			//TODO: var-file -> <vars in manifest> = path
+			{Long: "var-file", Complete: compNoop},
+			{Long: "vars-file", Short: 'l', Complete: compFiles},
+			{Long: "vars-env", Complete: compNoop},
+			{Long: "vars-store", Complete: compFiles},
+			{Long: "ops-file", Short: 'o', Complete: compFiles},
+			{Long: "skip-drain"},
+			{Long: "state", Complete: compFiles},
+			{Long: "recreate"},
+			{Long: "recreate-persistent-disks"},
+		},
+		Args: []compFunc{compFiles},
 	}.Insert()
 
 	command{
 		Name: "create-release",
 		Flags: []flag{
+			{Long: "dir", Complete: compDirs},
+			{Long: "name", Complete: compNoop},
+			{Long: "version", Complete: compNoop},
 			{Long: "timestamp-version"},
 			{Long: "final"},
+			{Long: "tarball", Complete: compFiles},
 			{Long: "force"},
 		},
 	}.Insert().Alias("cr")
@@ -97,39 +129,64 @@ func (c *commandList) Populate() {
 	command{
 		Name: "delete-config",
 		Flags: []flag{
-			{Long: "type", Complete: compEnum("cloud", "runtime", "cpi"), TakesValue: true},
+			{Long: "type", Complete: compEnum("cloud", "runtime", "cpi")},
+			//TODO: name -> config names
+			{Long: "name", Complete: compNoop},
+		},
+		Args: []compFunc{
+			compNoop, //TODO: Config ids
 		},
 	}.Insert().Alias("dc")
 
 	command{
-		Name: "delete-deployment",
-		Flags: []flag{
-			{Long: "force"},
-		},
+		Name:  "delete-deployment",
+		Flags: []flag{{Long: "force"}},
 	}.Insert().Alias("deld")
 
 	command{
 		Name: "delete-disk",
+		Args: []compFunc{
+			compNoop, //TODO: (orphaned?) Disk cids
+		},
 	}.Insert()
 
 	command{
 		Name: "delete-env",
 		Flags: []flag{
+			//TODO: var -> <vars in manifest> = noop
+			{Long: "var", Short: 'v', Complete: compNoop},
+			//TODO: var-file -> <vars in manifest> = path
+			{Long: "var-file", Complete: compNoop},
+			{Long: "vars-file", Short: 'l', Complete: compFiles},
+			{Long: "vars-env", Complete: compNoop},
+			{Long: "vars-store", Complete: compFiles},
+			{Long: "ops-file", Short: 'o', Complete: compFiles},
 			{Long: "skip-drain"},
+			{Long: "state", Complete: compFiles},
 		},
+		Args: []compFunc{compFiles},
 	}.Insert()
 
 	command{
 		Name: "delete-network",
+		Args: []compFunc{
+			compNoop, //TODO: Network names
+		},
 	}.Insert()
 
 	command{
 		Name:  "delete-release",
 		Flags: []flag{{Long: "force"}},
+		Args: []compFunc{
+			compNoop, //TODO: release-name[/release-version]
+		},
 	}.Insert().Alias("delr")
 
 	command{
 		Name: "delete-snapshot",
+		Args: []compFunc{
+			compNoop, //TODO: snapshot cids
+		},
 	}.Insert()
 
 	command{
@@ -139,21 +196,39 @@ func (c *commandList) Populate() {
 	command{
 		Name:  "delete-stemcell",
 		Flags: []flag{{Long: "force"}},
+		Args: []compFunc{
+			compNoop, //TODO: stemcell-name[/version]
+		},
 	}.Insert()
 
 	command{
 		Name: "delete-vm",
+		Args: []compFunc{
+			compNoop, //TODO: vm cids
+		},
 	}.Insert()
 
 	command{
 		Name: "deploy",
 		Flags: []flag{
+			//TODO: var -> <vars in manifest> = noop
+			{Long: "var", Short: 'v', Complete: compNoop},
+			//TODO: var-file -> <vars in manifest> = path
+			{Long: "var-file", Complete: compNoop},
+			{Long: "vars-file", Short: 'l', Complete: compFiles},
+			{Long: "vars-env", Complete: compNoop},
+			{Long: "vars-store", Complete: compFiles},
+			{Long: "ops-file", Short: 'o', Complete: compFiles},
 			{Long: "no-redact"},
 			{Long: "recreate"},
 			{Long: "recreate-persistent-disks"},
 			{Long: "fix"},
+			//TODO: skip-drain -> get instance groups from manifest
+			{Long: "skip-drain", Complete: compNoop},
+			{Long: "max-in-flight", Complete: compNoop},
 			{Long: "dry-run"},
 		},
+		Args: []compFunc{compFiles},
 	}.Insert().Alias("d")
 
 	command{
@@ -166,6 +241,14 @@ func (c *commandList) Populate() {
 
 	command{
 		Name: "diff-config",
+		Flags: []flag{
+			//TODO: Config ids
+			{Long: "from-id", Complete: compNoop},
+			//TODO: Config ids
+			{Long: "to-id", Complete: compNoop},
+			{Long: "from-content", Complete: compFiles},
+			{Long: "to-content", Complete: compFiles},
+		},
 	}.Insert()
 
 	command{
@@ -187,28 +270,61 @@ func (c *commandList) Populate() {
 
 	command{
 		Name: "event",
+		Args: []compFunc{
+			compNoop, //TODO: Event IDs (?)
+		},
 	}.Insert()
 
 	command{
 		Name: "events",
 		Flags: []flag{
-			{Long: "action", Complete: compEnum("update", "delete", "setup ssh", "cleanup ssh"), TakesValue: true},
+			//TODO: Event IDs (?)
+			{Long: "before-id", Complete: compNoop},
+			{Long: "before", Complete: compNoop},
+			{Long: "after", Complete: compNoop},
+			//TODO: Task IDs (?)
+			{Long: "task", Complete: compNoop},
+			//TODO: Instances
+			{Long: "instance", Complete: compNoop},
+			//TODO: Event users (?)
+			{Long: "event-user", Complete: compNoop},
+			{Long: "action", Complete: compEnum("update", "delete", "setup ssh", "cleanup ssh")},
+			{Long: "object-type", Complete: compEnum("instance", "deployment", "vm")},
+			//TODO: Probably complete this, but only if object type is given?
+			{Long: "object-name", Complete: compNoop},
 		},
 	}.Insert()
 
 	command{
 		Name: "export-release",
+		Flags: []flag{
+			{Long: "dir", Complete: compDirs},
+			//TODO: List jobs in current deployment
+			{Long: "job", Complete: compNoop},
+		},
+		Args: []compFunc{
+			compNoop,
+			compNoop,
+		},
 	}.Insert()
 
 	command{
 		Name: "finalize-release",
 		Flags: []flag{
+			{Long: "dir", Complete: compDirs},
+			{Long: "name", Complete: compNoop},
+			{Long: "version", Complete: compNoop},
 			{Long: "force"},
+		},
+		Args: []compFunc{
+			compFiles,
 		},
 	}.Insert()
 
 	command{
-		Name: "generate-job",
+		Name:  "generate-job",
+		Flags: []flag{{Long: "dir", Complete: compDirs}},
+		Args:  []compFunc{compNoop},
 	}.Insert()
 
 	command{
@@ -217,17 +333,22 @@ func (c *commandList) Populate() {
 
 	command{
 		Name: "ignore",
+		Args: []compFunc{
+			compNoop, //TODO: Instance Group / Instance ID
+		},
 	}.Insert()
 
 	command{
 		Name: "init-release",
 		Flags: []flag{
+			{Long: "dir", Complete: compDirs},
 			{Long: "git"},
 		},
 	}.Insert()
 
 	command{
 		Name: "inspect-local-stemcell",
+		Args: []compFunc{compDirs},
 	}.Insert()
 
 	command{
@@ -248,6 +369,16 @@ func (c *commandList) Populate() {
 	command{
 		Name: "interpolate",
 		Flags: []flag{
+			//TODO: var -> <vars in manifest> = noop
+			{Long: "var", Short: 'v', Complete: compNoop},
+			//TODO: var-file -> <vars in manifest> = path
+			{Long: "var-file", Complete: compNoop},
+			{Long: "vars-file", Short: 'l', Complete: compFiles},
+			{Long: "vars-env", Complete: compNoop},
+			{Long: "vars-store", Complete: compFiles},
+			{Long: "ops-file", Short: 'o', Complete: compFiles},
+			//TODO: I think this is parsing the paths of a yaml file?
+			{Long: "path", Complete: compNoop},
 			{Long: "var-errs"},
 			{Long: "var-errs-unused"},
 		},
@@ -268,10 +399,19 @@ func (c *commandList) Populate() {
 	command{
 		Name: "logs",
 		Flags: []flag{
+			{Long: "dir", Complete: compNoop},
 			{Long: "follow", Short: 'f'},
+			{Long: "num", Complete: compNoop},
 			{Long: "quiet", Short: 'q'},
+			//TODO: Jobs on the VM
+			{Long: "job", Complete: compNoop},
+			{Long: "only", Complete: compNoop},
 			{Long: "agent"},
 			{Long: "gw-disable"},
+			{Long: "gw-user", Complete: compNoop},
+			{Long: "gw-host", Complete: compNoop},
+			{Long: "gw-private-key", Complete: compFiles},
+			{Long: "gw-socks5", Complete: compFiles},
 		},
 	}.Insert()
 
@@ -286,6 +426,9 @@ func (c *commandList) Populate() {
 
 	command{
 		Name: "orphan-disk",
+		Args: []compFunc{
+			compNoop, //TODO: disk cids (non-orphaned)
+		},
 	}.Insert()
 
 	command{
@@ -298,6 +441,8 @@ func (c *commandList) Populate() {
 			{Long: "skip-drain"},
 			{Long: "force"},
 			{Long: "fix"},
+			{Long: "canaries", Complete: compNoop},
+			{Long: "max-in-flight", Complete: compNoop},
 			{Long: "dry-run"},
 		},
 	}.Insert()
@@ -307,18 +452,27 @@ func (c *commandList) Populate() {
 	}.Insert().Alias("rs")
 
 	command{
-		Name: "remove-blob",
+		Name:  "remove-blob",
+		Flags: []flag{{Long: "dir", Complete: compDirs}},
+		Args: []compFunc{
+			compNoop, //TODO: Not sure if file path or path within blob registry (i.e. blob name)
+		},
 	}.Insert()
 
 	command{
 		Name: "repack-stemcell",
 		Flags: []flag{
+			{Long: "name", Complete: compNoop},
+			{Long: "cloud-properties", Complete: compNoop},
 			{Long: "empty-image"},
+			{Long: "format", Complete: compNoop},
+			{Long: "version", Complete: compNoop},
 		},
 	}.Insert()
 
 	command{
-		Name: "reset-release",
+		Name:  "reset-release",
+		Flags: []flag{{Long: "dir", Complete: compDirs}},
 	}.Insert()
 
 	command{
@@ -326,20 +480,29 @@ func (c *commandList) Populate() {
 		Flags: []flag{
 			{Long: "skip-drain"},
 			{Long: "force"},
+			{Long: "canaries", Complete: compNoop},
+			{Long: "max-in-flight", Complete: compNoop},
 		},
 	}.Insert()
 
 	command{
 		Name: "run-errand",
 		Flags: []flag{
+			//TODO: Instance group / instance id
+			{Long: "instance", Complete: compNoop},
 			{Long: "keep-alive"},
 			{Long: "when-changed"},
 			{Long: "download-logs"},
+			{Long: "logs-dir", Complete: compDirs},
 		},
 	}.Insert()
 
 	command{
 		Name: "runtime-config",
+		Flags: []flag{
+			//TODO: Probably the name of runtime configs?
+			{Long: "name", Complete: compNoop},
+		},
 	}.Insert().Alias("rc")
 
 	command{
@@ -347,18 +510,36 @@ func (c *commandList) Populate() {
 		Flags: []flag{
 			{Long: "recursive", Short: 'r'},
 			{Long: "gw-disable"},
+			{Long: "gw-user", Complete: compNoop},
+			{Long: "gw-host", Complete: compNoop},
+			{Long: "gw-private-key", Complete: compFiles},
+			{Long: "gw-socks5", Complete: compFiles},
+		},
+		Args: []compFunc{
+			compFiles, //TODO: at least instance group/id... maybe use ssh to ls if thats not too slow?
+			//TODO: "or" that with files on the local file system
+			compFiles,
 		},
 	}.Insert()
 
 	command{
 		Name: "snapshots",
+		Args: []compFunc{
+			compNoop, //TODO: instance group/instance id
+		},
 	}.Insert()
 
 	command{
 		Name: "ssh",
 		Flags: []flag{
+			{Long: "command", Short: 'c', Complete: compNoop},
+			{Long: "opts", Complete: compNoop},
 			{Long: "results", Short: 'r'},
 			{Long: "gw-disable"},
+			{Long: "gw-user", Complete: compNoop},
+			{Long: "gw-host", Complete: compNoop},
+			{Long: "gw-private-key", Complete: compFiles},
+			{Long: "gw-socks5", Complete: compFiles},
 		},
 	}.Insert()
 
@@ -366,6 +547,11 @@ func (c *commandList) Populate() {
 		Name: "start",
 		Flags: []flag{
 			{Long: "force"},
+			{Long: "canaries", Complete: compNoop},
+			{Long: "max-in-flight", Complete: compNoop},
+		},
+		Args: []compFunc{
+			compNoop, //TODO: instance group[/id]
 		},
 	}.Insert()
 
@@ -380,15 +566,24 @@ func (c *commandList) Populate() {
 			{Long: "hard"},
 			{Long: "skip-drain"},
 			{Long: "force"},
+			{Long: "canaries", Complete: compNoop},
+			{Long: "max-in-flight", Complete: compNoop},
+		},
+		Args: []compFunc{
+			compNoop, //TODO: instance group[/id]
 		},
 	}.Insert()
 
 	command{
-		Name: "sync-blobs",
+		Name:  "sync-blobs",
+		Flags: []flag{{Long: "dir", Complete: compDirs}},
 	}.Insert()
 
 	command{
 		Name: "take-snapshot",
+		Args: []compFunc{
+			compNoop, //TODO: instance group/id
+		},
 	}.Insert()
 
 	command{
@@ -400,40 +595,84 @@ func (c *commandList) Populate() {
 			{Long: "result"},
 			{Long: "all", Short: 'a'},
 		},
+		Args: []compFunc{
+			compNoop, //TODO: Task ids?
+		},
 	}.Insert().Alias("t")
 
 	command{
 		Name: "tasks",
 		Flags: []flag{
+			{Long: "recent", Complete: compNoop},
 			{Long: "all", Short: 'a'},
 		},
 	}.Insert().Alias("ts")
 
 	command{
 		Name: "unignore",
+		Args: []compFunc{
+			compNoop, //TODO: instance group/id
+		},
 	}.Insert()
 
 	command{
 		Name: "update-cloud-config",
+		Flags: []flag{
+			//TODO: var -> <vars in manifest> = noop
+			{Long: "var", Short: 'v', Complete: compNoop},
+			//TODO: var-file -> <vars in manifest> = path
+			{Long: "var-file", Complete: compNoop},
+			{Long: "vars-file", Short: 'l', Complete: compFiles},
+			{Long: "vars-env", Complete: compNoop},
+			{Long: "vars-store", Complete: compFiles},
+			{Long: "ops-file", Short: 'o', Complete: compFiles},
+		},
+		Args: []compFunc{
+			compFiles,
+		},
 	}.Insert().Alias("ucc")
 
 	command{
 		Name: "update-config",
 		Flags: []flag{
-			{Long: "type", Complete: compEnum("cloud", "runtime", "cpi"), TakesValue: true},
+			{Long: "type", Complete: compEnum("cloud", "runtime", "cpi")},
+			//TODO: Config names with type --type
+			{Long: "name", Complete: compNoop},
+			//TODO: var -> <vars in manifest> = noop
+			{Long: "var", Short: 'v', Complete: compNoop},
+			//TODO: var-file -> <vars in manifest> = path
+			{Long: "var-file", Complete: compNoop},
+			{Long: "vars-file", Short: 'l', Complete: compFiles},
+			{Long: "vars-env", Complete: compNoop},
+			{Long: "vars-store", Complete: compFiles},
+			{Long: "ops-file", Short: 'o', Complete: compFiles},
+		},
+		Args: []compFunc{
+			compFiles,
 		},
 	}.Insert().Alias("uc")
 
 	command{
 		Name: "update-cpi-config",
 		Flags: []flag{
+			//TODO: var -> <vars in manifest> = noop
+			{Long: "var", Short: 'v', Complete: compNoop},
+			//TODO: var-file -> <vars in manifest> = path
+			{Long: "var-file", Complete: compNoop},
+			{Long: "vars-file", Short: 'l', Complete: compFiles},
+			{Long: "vars-env", Complete: compNoop},
+			{Long: "vars-store", Complete: compFiles},
+			{Long: "ops-file", Short: 'o', Complete: compFiles},
 			{Long: "no-redact"},
+		},
+		Args: []compFunc{
+			compFiles,
 		},
 	}.Insert()
 
 	command{
 		Name: "update-resurrection",
-		ArgComps: []compFunc{
+		Args: []compFunc{
 			compEnum("on", "off"),
 		},
 	}.Insert()
@@ -441,19 +680,40 @@ func (c *commandList) Populate() {
 	command{
 		Name: "update-runtime-config",
 		Flags: []flag{
+			//TODO: var -> <vars in manifest> = noop
+			{Long: "var", Short: 'v', Complete: compNoop},
+			//TODO: var-file -> <vars in manifest> = path
+			{Long: "var-file", Complete: compNoop},
+			{Long: "vars-file", Short: 'l', Complete: compFiles},
+			{Long: "vars-env", Complete: compNoop},
+			{Long: "vars-store", Complete: compFiles},
+			{Long: "ops-file", Short: 'o', Complete: compFiles},
 			{Long: "no-redact"},
+			//TODO: Runtime config names
+			{Long: "name", Complete: compNoop},
 		},
 	}.Insert().Alias("urc")
 
 	command{
 		Name: "upload-blobs",
+		Flags: []flag{
+			{Long: "dir", Complete: compDirs},
+		},
 	}.Insert()
 
 	command{
 		Name: "upload-release",
 		Flags: []flag{
+			{Long: "dir", Complete: compDirs},
 			{Long: "rebase"},
 			{Long: "fix"},
+			{Long: "name", Complete: compNoop},
+			{Long: "version", Complete: compNoop},
+			{Long: "sha1", Complete: compNoop},
+			{Long: "stemcell", Complete: compNoop},
+		},
+		Args: []compFunc{
+			compFiles,
 		},
 	}.Insert().Alias("ur")
 
@@ -461,6 +721,12 @@ func (c *commandList) Populate() {
 		Name: "upload-stemcell",
 		Flags: []flag{
 			{Long: "fix"},
+			{Long: "name", Complete: compNoop},
+			{Long: "version", Complete: compNoop},
+			{Long: "sha1", Complete: compNoop},
+		},
+		Args: []compFunc{
+			compFiles,
 		},
 	}.Insert().Alias("us")
 
@@ -470,6 +736,13 @@ func (c *commandList) Populate() {
 
 	command{
 		Name: "vendor-package",
+		Flags: []flag{
+			{Long: "dir", Complete: compDirs},
+		},
+		Args: []compFunc{
+			compNoop, //if the args were reversed, I could search the release dir for packages
+			compDirs,
+		},
 	}.Insert()
 
 	command{
@@ -487,9 +760,9 @@ func (c *commandList) Populate() {
 var commands commandList
 
 type command struct {
-	Name     string
-	Flags    []flag
-	ArgComps []compFunc
+	Name  string
+	Flags []flag
+	Args  []compFunc
 }
 
 func (c command) Insert() command {

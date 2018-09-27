@@ -23,7 +23,7 @@ func compFlagNames(ctx compContext) ([]string, error) {
 }
 
 func compEnvAliases(ctx compContext) ([]string, error) {
-	conf, err := getBoshConfig()
+	conf, err := getBoshConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -40,4 +40,12 @@ func compEnum(s ...string) func(compContext) ([]string, error) {
 	return func(compContext) ([]string, error) {
 		return s, nil
 	}
+}
+
+func compFiles(ctx compContext) ([]string, error) {
+	return walkDirs(ctx.CurrentToken, true, false)
+}
+
+func compDirs(ctx compContext) ([]string, error) {
+	return walkDirs(ctx.CurrentToken, false, true)
 }

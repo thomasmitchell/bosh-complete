@@ -5,10 +5,9 @@ import "fmt"
 var flags = map[string]flag{}
 
 type flag struct {
-	Long       string
-	Short      rune
-	Complete   compFunc
-	TakesValue bool
+	Long     string
+	Short    rune
+	Complete compFunc
 }
 
 func insertFlag(f flag) {

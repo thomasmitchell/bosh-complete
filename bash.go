@@ -9,19 +9,14 @@ import (
 
 var bashSource = fmt.Sprintf(`
 _bosh_comp() {
-  local output="$({{.Executable}} complete {{.Debug}} -- ${COMP_WORDS[@]::$COMP_CWORD} "${COMP_WORDS[$COMP_CWORD]}")"
-  COMPREPLY=()
+	local output="$({{.Executable}} complete {{.Debug}} -- ${COMP_WORDS[@]::$COMP_CWORD} "${COMP_WORDS[$COMP_CWORD]}")"
+	COMPREPLY=()
+	IFS=''
   while read -r line; do
-		if [[ -n $line ]]; then
-			if [[ "$line" =~ \ |\' ]]; then  # if has spaces
-				line="\"$line\""
-			fi
+		if [[ -n "$line" ]]; then
       COMPREPLY+=("$line")
     fi
   done <<< "$output"
-  if [[ ${#COMPREPLY[@]} -eq 1 ]]; then
-    COMPREPLY[0]="${COMPREPLY[0]} "
-  fi
 }
 
 complete -o nospace -F _bosh_comp {{.Bosh}}

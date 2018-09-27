@@ -15,12 +15,14 @@ type options struct {
 func main() {
 	command, args, err := cli.Parse(&opts)
 	if err != nil {
-		log.Write("Could not init cli parser: %s", err.Error())
+		panic("Could not init cli parser: " + err.Error())
 	}
 
 	if opts.Debug {
 		log.TurnOn()
 	}
+
+	log.Write("")
 
 	switch command {
 	case "complete":
