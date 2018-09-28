@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
+
 	cli "github.com/jhunt/go-cli"
+	"github.com/thomasmmitchell/bosh-complete/version"
 )
 
 var opts options
@@ -11,6 +14,7 @@ type options struct {
 	Complete   struct{} `cli:"complete"`
 	BashSource struct{} `cli:"bash-source"`
 	ZshSource  struct{} `cli:"zsh-source"`
+	Version    struct{} `cli:"version"`
 }
 
 func main() {
@@ -33,7 +37,13 @@ func main() {
 	case "zsh-source":
 		//For my weird friends Nic Williams and Long Nguyen
 		doZshSource()
+	case "version":
+		doVersion()
 	default:
 		panic("Unknown command: " + command)
 	}
+}
+
+func doVersion() {
+	fmt.Println(version.Version)
 }
