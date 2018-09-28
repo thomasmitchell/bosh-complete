@@ -306,7 +306,7 @@ func (c *commandList) Populate() {
 		Name: "export-release",
 		Flags: []flag{
 			{Long: "dir", Complete: compDirs},
-			//TODO: List jobs in current deployment
+			//TODO: List jobs in current release dir
 			{Long: "job", Complete: compNoop},
 		},
 		Args: []compFunc{
@@ -341,7 +341,7 @@ func (c *commandList) Populate() {
 	command{
 		Name: "ignore",
 		Args: []compFunc{
-			compNoop, //TODO: Instance Group / Instance ID
+			compInstances,
 		},
 	}.Insert()
 
@@ -495,8 +495,7 @@ func (c *commandList) Populate() {
 	command{
 		Name: "run-errand",
 		Flags: []flag{
-			//TODO: Instance group / instance id
-			{Long: "instance", Complete: compNoop},
+			{Long: "instance", Complete: compInstances},
 			{Long: "keep-alive"},
 			{Long: "when-changed"},
 			{Long: "download-logs"},
@@ -532,7 +531,7 @@ func (c *commandList) Populate() {
 	command{
 		Name: "snapshots",
 		Args: []compFunc{
-			compNoop, //TODO: instance group/instance id
+			compInstances,
 		},
 	}.Insert()
 
@@ -548,6 +547,9 @@ func (c *commandList) Populate() {
 			{Long: "gw-private-key", Complete: compFiles},
 			{Long: "gw-socks5", Complete: compFiles},
 		},
+		Args: []compFunc{
+			compInstances,
+		},
 	}.Insert()
 
 	command{
@@ -558,7 +560,7 @@ func (c *commandList) Populate() {
 			{Long: "max-in-flight", Complete: compNoop},
 		},
 		Args: []compFunc{
-			compNoop, //TODO: instance group[/id]
+			compOr(compInstanceGroups, compInstances),
 		},
 	}.Insert()
 
@@ -577,7 +579,7 @@ func (c *commandList) Populate() {
 			{Long: "max-in-flight", Complete: compNoop},
 		},
 		Args: []compFunc{
-			compNoop, //TODO: instance group[/id]
+			compOr(compInstanceGroups, compInstances),
 		},
 	}.Insert()
 
@@ -589,7 +591,7 @@ func (c *commandList) Populate() {
 	command{
 		Name: "take-snapshot",
 		Args: []compFunc{
-			compNoop, //TODO: instance group/id
+			compInstances,
 		},
 	}.Insert()
 
@@ -618,7 +620,7 @@ func (c *commandList) Populate() {
 	command{
 		Name: "unignore",
 		Args: []compFunc{
-			compNoop, //TODO: instance group/id
+			compInstances,
 		},
 	}.Insert()
 

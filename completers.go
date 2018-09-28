@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 func compNoop(ctx compContext) ([]string, error) {
 	return nil, nil
 }
@@ -72,4 +74,59 @@ func compDeployments(ctx compContext) ([]string, error) {
 	}
 
 	return ret, nil
+}
+
+func compInstanceGroups(ctx compContext) ([]string, error) {
+	client, err := getBoshClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	instances, err := fetchInstances(client, ctx)
+	if err != nil {
+		return nil, err
+	}
+	uniqueMap := map[string]bool{}
+	for _, instance := range instances {
+		uniqueMap[instance.Job] = true
+	}
+
+	ret := make([]string, 0, len(uniqueMap))
+	for group := range uniqueMap {
+		ret = append(ret, group)
+	}
+
+	return ret, nil
+}
+
+func compInstances(ctx compContext) ([]string, error) {
+	client, err := getBoshClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	instances, err := fetchInstances(client, ctx)
+	if err != nil {
+		return nil, err
+	}
+	ret := make([]string, 0, len(instances))
+	for _, instance := range instances {
+		ret = append(ret, fmt.Sprintf("%s/%s", instance.Job, instance.ID))
+		ret = append(ret, fmt.Sprintf("%s/%d", instance.Job, instance.Index))
+	}
+
+	return ret, nil
+}
+
+func compOr(fns ...compFunc) compFunc {
+	return func(ctx compContext) ([]string, error) {
+		ret := []string{}
+		for _, fn := range fns {
+			theseComps, err := fn(ctx)
+			if err != nil {
+				return nil, err
+			}
+
+			ret = append(ret, theseComps...)
+		}
+		return ret, nil
+	}
 }

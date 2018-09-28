@@ -5,9 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 
 	"github.com/thomasmmitchell/doomsday/storage/uaa"
 )
@@ -20,6 +22,7 @@ type client struct {
 	RefreshToken      string
 	SkipSSLValidation bool
 	isBasic           bool
+	cache             map[string]string
 }
 
 type boshAuthType uint32
@@ -80,7 +83,7 @@ func (c *client) fetchAuthHeader() (string, error) {
 	}
 
 	info := boshInfo{}
-	err = c.Do(req, &info)
+	err = c.Do(req, "/info", &info)
 	if err != nil {
 		return "", err
 	}
@@ -119,6 +122,13 @@ func (c *client) fetchAuthHeader() (string, error) {
 }
 
 func (c *client) Get(path string, output interface{}) error {
+	cacheBody, cacheHit := c.cache[path]
+	if cacheHit {
+		log.Write("http cache hit: %s", path)
+		err := json.NewDecoder(strings.NewReader(cacheBody)).Decode(output)
+		return err
+	}
+	log.Write("http cache miss: %s", path)
 	authHeader, err := c.fetchAuthHeader()
 	if err != nil {
 		return err
@@ -131,10 +141,10 @@ func (c *client) Get(path string, output interface{}) error {
 
 	req.Header.Set("Authorization", authHeader)
 
-	return c.Do(req, output)
+	return c.Do(req, path, output)
 }
 
-func (c *client) Do(req *http.Request, output interface{}) error {
+func (c *client) Do(req *http.Request, path string, output interface{}) error {
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
@@ -160,8 +170,16 @@ func (c *client) Do(req *http.Request, output interface{}) error {
 		return fmt.Errorf("Non-2xx response code")
 	}
 
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	log.Write("Inserting to cache: %s", path)
+	c.cache[path] = string(bodyBytes)
+
 	if output != nil {
-		err := json.NewDecoder(resp.Body).Decode(output)
+		err := json.Unmarshal(bodyBytes, output)
 		if err != nil {
 			return err
 		}

@@ -9,6 +9,8 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+var boshClient *client
+
 type boshConfig struct {
 	Environments []boshEnvironment `yaml:"environments"`
 }
@@ -40,6 +42,10 @@ func getBoshConfig(ctx compContext) (*boshConfig, error) {
 }
 
 func getBoshClient(ctx compContext) (*client, error) {
+	if boshClient != nil {
+		return boshClient, nil
+	}
+
 	var envs []string
 	var depFound bool
 	if envs, depFound = ctx.Flags["--environment"]; !depFound {
@@ -72,6 +78,7 @@ func getBoshClient(ctx compContext) (*client, error) {
 	ret := &client{
 		URL:               envAddr,
 		SkipSSLValidation: true,
+		cache:             map[string]string{},
 	}
 
 	env = nil
@@ -89,6 +96,34 @@ func getBoshClient(ctx compContext) (*client, error) {
 	ret.Username = env.Username
 	ret.Password = env.Password
 	ret.RefreshToken = env.RefreshToken
+
+	boshClient = ret
+
+	return boshClient, nil
+}
+
+type boshInstance struct {
+	AgentID   string `json:"agent_id"`
+	CID       string `json:"cid"`
+	Job       string `json:"job"`
+	Index     int    `json:"index"`
+	ID        string `json:"id"`
+	ExpectsVM bool   `json:"expects_vm"`
+}
+
+func fetchInstances(c *client, ctx compContext) ([]boshInstance, error) {
+	var deployments []string
+	var depGiven bool
+	if deployments, depGiven = ctx.Flags["--deployment"]; !depGiven {
+		return nil, fmt.Errorf("No deployment given")
+	}
+
+	ret := []boshInstance{}
+
+	err := c.Get(fmt.Sprintf("/deployments/%s/instances", deployments[0]), &ret)
+	if err != nil {
+		return nil, err
+	}
 
 	return ret, nil
 }
