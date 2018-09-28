@@ -50,51 +50,74 @@ func substituteHomeDir(cur string) string {
 	return cur
 }
 
-func walkDirs(cur string, showLeaf bool, chooseDir bool) ([]string, error) {
-	dontFilterPrefix = true
-	cur = substituteHomeDir(cur)
+type filepath struct {
+	parts    []string
+	absolute bool
+	dir      bool
+}
 
-	rawPathParts := strings.Split(cur, "/")
-	pathParts := []string{}
+func parseFilepath(path string) filepath {
+	ret := filepath{}
+	rawPathParts := strings.Split(path, "/")
 	for i := 0; i < len(rawPathParts)-1; i++ {
 		if rawPathParts[i] != "" {
-			pathParts = append(pathParts, rawPathParts[i])
+			ret.parts = append(ret.parts, rawPathParts[i])
 		}
 	}
-	pathParts = append(pathParts, rawPathParts[len(rawPathParts)-1])
+	ret.absolute = strings.HasPrefix(path, "/")
+	ret.dir = len(ret.parts) == 0 || strings.HasSuffix(path, "/")
+	return ret
+}
+
+func (f filepath) String() string {
+	if len(f.parts) == 0 && !f.absolute {
+		return "./"
+	}
+
 	prefix := ""
-	if len(pathParts) > 0 {
-		prefix = strings.Join(pathParts[:len(pathParts)-1], "/")
-	}
-	toList := prefix
-	if prefix == "" {
-		toList = "./"
-	} else {
-		prefix += "/"
+	if f.absolute {
+		prefix = "/"
 	}
 
-	cur = prefix + pathParts[len(pathParts)-1]
+	return prefix + strings.Join(f.parts, "/")
+}
 
-	log.Write("Prefix: %s", prefix)
+func walkDirs(cur string, showLeaf bool, chooseDir bool) ([]string, error) {
+	dontFilterPrefix = true
+	searchPath := parseFilepath(substituteHomeDir(cur)).String()
+	lastSlash := strings.LastIndex(cur, "/")
+	curDir := ""
+	if lastSlash >= 0 {
+		curDir = cur[:lastSlash] + "/"
+	}
 
-	log.Write("Listing %s", toList)
+	log.Write("Prefix: %s", curDir)
+	log.Write("Listing %s", searchPath)
 
-	contents, err := ioutil.ReadDir(toList)
+	contents, err := ioutil.ReadDir(searchPath)
 	if err != nil {
 		return nil, err
 	}
 
-	candidates := []string{prefix + "./", prefix + "../"}
-	if chooseDir && prefix != "" {
-		candidates = append(candidates, prefix)
+	candidates := []string{curDir + "./", curDir + "../"}
+	if chooseDir && curDir != "" {
+		candidates = append(candidates, curDir)
 	}
 	for _, content := range contents {
 		slash := ""
 		if content.IsDir() {
 			slash = "/"
+		} else if content.Mode()&os.ModeSymlink > 0 {
+			derefSymlink, err := os.Stat(searchPath + content.Name())
+			if err != nil {
+				return nil, err
+			}
+			if derefSymlink.IsDir() {
+				slash = "/"
+			}
 		}
 
-		toAdd := fmt.Sprintf("%s%s%s", prefix, content.Name(), slash)
+		toAdd := fmt.Sprintf("%s%s%s", curDir, content.Name(), slash)
 		candidates = append(candidates, toAdd)
 	}
 
