@@ -10,6 +10,7 @@ type options struct {
 	Debug      bool     `cli:"-d, --debug"`
 	Complete   struct{} `cli:"complete"`
 	BashSource struct{} `cli:"bash-source"`
+	ZshSource  struct{} `cli:"zsh-source"`
 }
 
 func main() {
@@ -29,6 +30,9 @@ func main() {
 		doComplete(args)
 	case "bash-source":
 		doBashSource()
+	case "zsh-source":
+		//For my weird friends Nic Williams and Long Nguyen
+		doZshSource()
 	default:
 		panic("Unknown command: " + command)
 	}
