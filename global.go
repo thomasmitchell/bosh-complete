@@ -9,8 +9,7 @@ func insertGlobalFlags() {
 	insertFlag(flag{Long: "parallel", Complete: compNoop})
 	insertFlag(flag{Long: "client", Complete: compNoop})
 	insertFlag(flag{Long: "client-secret", Complete: compNoop})
-	//TODO: --deployment
-	insertFlag(flag{Long: "deployment", Complete: compNoop})
+	insertFlag(flag{Long: "deployment", Short: 'd', Complete: compDeployments})
 	insertFlag(flag{Long: "column", Complete: compNoop})
 	insertFlag(flag{Long: "json"})
 	insertFlag(flag{Long: "tty"})

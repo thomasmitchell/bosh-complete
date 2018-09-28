@@ -127,6 +127,13 @@ func (c *commandList) Populate() {
 	}.Insert().Alias("cr")
 
 	command{
+		Name: "curl",
+		Args: []compFunc{
+			compNoop,
+		},
+	}.Insert()
+
+	command{
 		Name: "delete-config",
 		Flags: []flag{
 			{Long: "type", Complete: compEnum("cloud", "runtime", "cpi")},

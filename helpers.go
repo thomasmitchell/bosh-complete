@@ -17,7 +17,8 @@ type boshEnvironment struct {
 	URL          string `yaml:"url"`
 	CACert       string `yaml:"ca_cert"`
 	Alias        string `yaml:"alias"`
-	Username     string `yaml:"password"`
+	Username     string `yaml:"username"`
+	Password     string `yaml:"password"`
 	RefreshToken string `yaml:"refresh_token"`
 }
 
@@ -36,6 +37,60 @@ func getBoshConfig(ctx compContext) (*boshConfig, error) {
 
 	err = yaml.NewDecoder(confFile).Decode(ret)
 	return ret, err
+}
+
+func getBoshClient(ctx compContext) (*client, error) {
+	var envs []string
+	var depFound bool
+	if envs, depFound = ctx.Flags["--environment"]; !depFound {
+		return nil, fmt.Errorf("env not given")
+	}
+	envName := envs[0]
+	cfg, err := getBoshConfig(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	//I think bosh looks for the address in the alias, and then rescans for the
+	// first instance of that address
+	// So... first, we look for the alias
+	var env *boshEnvironment
+	for _, e := range cfg.Environments {
+		if e.Alias == envName {
+			env = &e
+			break
+		}
+	}
+
+	envAddr := envName
+	if env != nil {
+		envAddr = env.URL
+	}
+
+	log.Write("making client for addr: %s", envAddr)
+
+	ret := &client{
+		URL:               envAddr,
+		SkipSSLValidation: true,
+	}
+
+	env = nil
+	for _, e := range cfg.Environments {
+		if e.URL == envAddr {
+			env = &e
+			break
+		}
+	}
+
+	if env == nil {
+		return nil, fmt.Errorf("Could not get auth info for env: %s", envName)
+	}
+
+	ret.Username = env.Username
+	ret.Password = env.Password
+	ret.RefreshToken = env.RefreshToken
+
+	return ret, nil
 }
 
 func substituteHomeDir(cur string) string {

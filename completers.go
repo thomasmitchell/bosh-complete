@@ -49,3 +49,27 @@ func compFiles(ctx compContext) ([]string, error) {
 func compDirs(ctx compContext) ([]string, error) {
 	return walkDirs(ctx.CurrentToken, false, true)
 }
+
+func compDeployments(ctx compContext) ([]string, error) {
+	type deployment struct {
+		Name string `json:"name"`
+	}
+
+	client, err := getBoshClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	deployments := []deployment{}
+	err = client.Get("/deployments", &deployments)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := make([]string, 0, len(deployments))
+	for _, dep := range deployments {
+		ret = append(ret, dep.Name)
+	}
+
+	return ret, nil
+}
