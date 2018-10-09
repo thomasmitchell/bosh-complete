@@ -97,6 +97,15 @@ func getBoshClient(ctx compContext) (*client, error) {
 	ret.Password = env.Password
 	ret.RefreshToken = env.RefreshToken
 
+	//--client and --client-secret flags override config
+	if client, found := ctx.Flags["--client"]; found {
+		ret.Username = client[0]
+	}
+
+	if clientSecret, found := ctx.Flags["--client-secret"]; found {
+		ret.Password = clientSecret[0]
+	}
+
 	boshClient = ret
 
 	return boshClient, nil
