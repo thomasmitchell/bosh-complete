@@ -25,6 +25,13 @@ type compContext struct {
 	Switches []string
 }
 
+func (c *compContext) InsertIfEnvvar(envvar, flag string) {
+	val := os.Getenv(envvar)
+	if val != "" {
+		c.Flags[flag] = append(c.Flags[flag], val)
+	}
+}
+
 func (c compContext) Complete() ([]string, error) {
 	var compFn compFunc
 
@@ -150,6 +157,15 @@ func parseContext(args []string) compContext {
 			}
 		}
 	}
+
+	//Flags override environment variables, so put in env vars last... they would
+	// become the second flag value, which is typically ignored in the code
+	ret.InsertIfEnvvar("BOSH_ENVIRONMENT", "--environment")
+	ret.InsertIfEnvvar("BOSH_DEPLOYMENT", "--deployment")
+	ret.InsertIfEnvvar("BOSH_CLIENT", "--client")
+	ret.InsertIfEnvvar("BOSH_CLIENT_SECRET", "--client-secret")
+	ret.InsertIfEnvvar("BOSH_NON_INTERACTIVE", "--non-interactive")
+	ret.InsertIfEnvvar("BOSH_CA_CERT", "--ca-cert")
 
 	return ret
 }
