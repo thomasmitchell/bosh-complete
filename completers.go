@@ -116,6 +116,26 @@ func compInstances(ctx compContext) ([]string, error) {
 	return ret, nil
 }
 
+func compReleases(ctx compContext) ([]string, error) {
+	client, err := getBoshClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	releases, err := fetchReleases(client)
+	if err != nil {
+		return nil, err
+	}
+	ret := make([]string, 0)
+	for _, release := range releases {
+		ret = append(ret, release.Name)
+		for _, version := range release.Versions {
+			ret = append(ret, fmt.Sprintf("%s/%s", release.Name, version.Version))
+		}
+	}
+
+	return ret, nil
+}
+
 func compOr(fns ...compFunc) compFunc {
 	return func(ctx compContext) ([]string, error) {
 		ret := []string{}

@@ -137,6 +137,23 @@ func fetchInstances(c *client, ctx compContext) ([]boshInstance, error) {
 	return ret, nil
 }
 
+type boshRelease struct {
+	Name     string `json:"name"`
+	Versions []struct {
+		Version string `json:"version"`
+	} `json:"release_versions"`
+}
+
+func fetchReleases(c *client) ([]boshRelease, error) {
+	var releases []boshRelease
+	err := c.Get(fmt.Sprintf("/releases"), &releases)
+	if err != nil {
+		return nil, err
+	}
+
+	return releases, nil
+}
+
 func substituteHomeDir(cur string) string {
 	if strings.HasPrefix(cur, "~") {
 		homeDir := os.Getenv("HOME")

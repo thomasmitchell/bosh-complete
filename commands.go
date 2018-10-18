@@ -185,7 +185,7 @@ func (c *commandList) Populate() {
 		Name:  "delete-release",
 		Flags: []flag{{Long: "force"}},
 		Args: []compFunc{
-			compNoop, //TODO: release-name[/release-version]
+			compReleases,
 		},
 	}.Insert().Alias("delr")
 
