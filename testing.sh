@@ -1,3 +1,3 @@
-make
+make 1>/dev/null 2>/dev/null
 unset -f _bosh_comp
-eval "$(./bosh-complete --debug bash-source)"
+./bosh-complete --debug bash-source

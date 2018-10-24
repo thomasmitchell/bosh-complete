@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/thomasmmitchell/doomsday/storage/uaa"
@@ -36,8 +37,15 @@ type boshInfo struct {
 	} `json:"user_authentication"`
 }
 
+var schemeRegex = regexp.MustCompile("^(http|https)://")
+
 func (c client) path(path string) string {
-	u, err := url.Parse(c.URL)
+	uStr := c.URL
+	if !schemeRegex.MatchString(uStr) {
+		uStr = "https://" + uStr
+	}
+
+	u, err := url.Parse(uStr)
 	if err != nil {
 		return c.URL + path
 	}
