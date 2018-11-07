@@ -452,6 +452,9 @@ func (c *commandList) Populate() {
 			{Long: "max-in-flight", Complete: compNoop},
 			{Long: "dry-run"},
 		},
+		Args: []compFunc{
+			compOr(compInstanceGroups, compInstances),
+		},
 	}.Insert()
 
 	command{
