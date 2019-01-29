@@ -136,6 +136,40 @@ func compReleases(ctx compContext) ([]string, error) {
 	return ret, nil
 }
 
+func compUnusedStemcells(ctx compContext) ([]string, error) {
+	client, err := getBoshClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	stemcells, err := fetchStemcells(client)
+	if err != nil {
+		return nil, err
+	}
+
+	unusedStemcells := map[string]bool{}
+
+	ret := make([]string, 0)
+	for _, stemcell := range stemcells {
+		if _, found := unusedStemcells[stemcell.Name]; !found {
+			unusedStemcells[stemcell.Name] = true
+		}
+
+		if len(stemcell.Deployments) == 0 {
+			ret = append(ret, fmt.Sprintf("%s/%s", stemcell.Name, stemcell.Version))
+		} else {
+			unusedStemcells[stemcell.Name] = false
+		}
+	}
+
+	for name, unused := range unusedStemcells {
+		if unused {
+			ret = append(ret, name)
+		}
+	}
+
+	return ret, nil
+}
+
 func compSpecificReleases(ctx compContext) ([]string, error) {
 	client, err := getBoshClient(ctx)
 	if err != nil {

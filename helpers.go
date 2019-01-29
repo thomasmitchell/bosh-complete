@@ -155,6 +155,24 @@ func fetchReleases(c *client) ([]boshRelease, error) {
 	return releases, nil
 }
 
+type boshStemcell struct {
+	Name        string `json:"name"`
+	Version     string `json:"version"`
+	Deployments []struct {
+		Name string `json:"name"`
+	} `json:"deployments"`
+}
+
+func fetchStemcells(c *client) ([]boshStemcell, error) {
+	var stemcells []boshStemcell
+	err := c.Get(fmt.Sprintf("/stemcells"), &stemcells)
+	if err != nil {
+		return nil, err
+	}
+
+	return stemcells, nil
+}
+
 func substituteHomeDir(cur string) string {
 	if strings.HasPrefix(cur, "~") {
 		homeDir := os.Getenv("HOME")

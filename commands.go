@@ -204,7 +204,7 @@ func (c *commandList) Populate() {
 		Name:  "delete-stemcell",
 		Flags: []flag{{Long: "force"}},
 		Args: []compFunc{
-			compNoop, //TODO: stemcell-name[/version]
+			compUnusedStemcells,
 		},
 	}.Insert()
 
