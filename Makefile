@@ -7,6 +7,7 @@ DIRTY_LINE := $(shell git diff --shortstat 2> /dev/null | tail -n1)
 ifneq ("$(DIRTY_LINE)", "")
   DIRTY := +
 endif
+#Don't lead this with a v
 VERSION ?= development
 LDFLAGS := -X "github.com/thomasmmitchell/bosh-complete/version.Version=$(VERSION)-$(COMMIT_HASH)$(DIRTY)"
 BUILD := go build -v -ldflags='$(LDFLAGS)' -o $(OUTPUT_NAME) $(BUILD_TARGET)
