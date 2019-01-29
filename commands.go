@@ -185,7 +185,7 @@ func (c *commandList) Populate() {
 		Name:  "delete-release",
 		Flags: []flag{{Long: "force"}},
 		Args: []compFunc{
-			compReleases,
+			compUnusedReleases,
 		},
 	}.Insert().Alias("delr")
 
@@ -360,6 +360,7 @@ func (c *commandList) Populate() {
 
 	command{
 		Name: "inspect-release",
+		Args: []compFunc{compSpecificReleases},
 	}.Insert()
 
 	command{

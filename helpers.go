@@ -140,7 +140,8 @@ func fetchInstances(c *client, ctx compContext) ([]boshInstance, error) {
 type boshRelease struct {
 	Name     string `json:"name"`
 	Versions []struct {
-		Version string `json:"version"`
+		Version           string `json:"version"`
+		CurrentlyDeployed bool   `json:"currently_deployed"`
 	} `json:"release_versions"`
 }
 
