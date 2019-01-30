@@ -38,16 +38,16 @@ func (c compContext) Complete() ([]string, error) {
 	log.Write("Current Token: %s", c.CurrentToken)
 
 	//determine what we're completing
-	if strings.HasPrefix(c.CurrentToken, "-") {
-		log.Write("Completing flag names")
-		compFn = compFlagNames
-	} else if c.CurrentFlag != "" {
+	if c.CurrentFlag != "" {
 		log.Write("Checking current flag: %s", c.CurrentFlag)
 		flag, found := flags[c.CurrentFlag]
 		if found {
 			log.Write("Completing flag value for flag %s", c.CurrentFlag)
 			compFn = flag.Complete
 		}
+	} else if strings.HasPrefix(c.CurrentToken, "-") {
+		log.Write("Completing flag names")
+		compFn = compFlagNames
 	} else if c.Command == "" {
 		log.Write("Completing command names")
 		compFn = compCommandNames
@@ -148,7 +148,7 @@ func parseContext(args []string) compContext {
 	// we're suggesting changes to.
 	for i := 0; i < len(args)-1; i++ {
 		token := args[i]
-		if strings.HasPrefix(token, "-") {
+		if strings.HasPrefix(token, "-") && ret.CurrentFlag == "" {
 			//Check if value or not
 			f := flags[token]
 			ret.CurrentFlag = "--" + f.Long
