@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func compNoop(ctx compContext) ([]string, error) {
 	return nil, nil

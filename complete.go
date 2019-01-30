@@ -120,12 +120,29 @@ func parseContext(args []string) compContext {
 		os.Exit(0)
 	}
 
+	for i := 0; i < len(args); i++ {
+		if strings.HasPrefix(args[i], "-") && strings.Contains(args[i], "=") {
+			spl := strings.SplitN(args[i], "=", 2)
+			log.Write("Split `%s' into parts `%s' and `%s'", args[i], spl[0], spl[1])
+			before := args[:i]
+			rest := []string{spl[0], spl[1]}
+			if i < len(args)-1 {
+				rest = append(rest, args[i+1:]...)
+			}
+			tmp := append(before, rest...)
+			args = tmp
+			i++
+		}
+	}
+
+	if len(args) > 0 {
+		log.Write("args after split: [`%s']", strings.Join(args, "', `"))
+	}
+
 	ret := compContext{
 		CurrentToken: args[len(args)-1],
 		Flags:        map[string][]string{},
 	}
-
-	ret.CurrentFlag = ""
 
 	//loop over all but last token - the last one is the token
 	// we're suggesting changes to.
