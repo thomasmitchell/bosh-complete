@@ -26,7 +26,12 @@ func (c commandList) Find(name string) (ret command, found bool) {
 
 func (c *commandList) Populate() {
 	command{
-		Name: "add-blob",
+		Name:  "add-blob",
+		Flags: []flag{{Long: "dir", Complete: compDirs}},
+		Args: []compFunc{
+			compFiles,
+			compNoop,
+		},
 	}.Insert()
 
 	command{
