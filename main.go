@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	cli "github.com/jhunt/go-cli"
 	"github.com/thomasmmitchell/bosh-complete/version"
@@ -23,6 +24,9 @@ func main() {
 		panic("Could not init cli parser: " + err.Error())
 	}
 
+	if os.Getenv("BOSH_COMPLETE_DEBUG") != "" {
+		opts.Debug = true
+	}
 	if opts.Debug {
 		log.TurnOn()
 	}
@@ -35,7 +39,7 @@ func main() {
 	case "bash-source":
 		doBashSource()
 	case "zsh-source":
-		//For my weird friends Nic Williams and Long Nguyen
+		//For my weird friends Nic and Long
 		doZshSource()
 	case "version":
 		doVersion()
