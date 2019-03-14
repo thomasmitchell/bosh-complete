@@ -10,7 +10,14 @@ func compNoop(ctx compContext) ([]string, error) {
 
 func compCommandNames(ctx compContext) ([]string, error) {
 	var ret []string
+	var filterOutAliases bool
+	if ctx.CurrentToken == "" {
+		filterOutAliases = true
+	}
 	for _, cmd := range commands {
+		if filterOutAliases && cmd.IsAlias {
+			continue
+		}
 		ret = append(ret, cmd.Name)
 	}
 

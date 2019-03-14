@@ -778,9 +778,10 @@ func (c *commandList) Populate() {
 var commands commandList
 
 type command struct {
-	Name  string
-	Flags []flag
-	Args  []compFunc
+	Name    string
+	IsAlias bool
+	Flags   []flag
+	Args    []compFunc
 }
 
 func (c command) Insert() command {
@@ -790,6 +791,7 @@ func (c command) Insert() command {
 
 func (c command) Alias(alias string) command {
 	c.Name = alias
+	c.IsAlias = true
 	return c.Insert()
 }
 
