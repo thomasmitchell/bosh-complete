@@ -172,18 +172,6 @@ func fetchStemcells(c *client) ([]boshStemcell, error) {
 	return stemcells, nil
 }
 
-func substituteHomeDir(cur string) string {
-	if strings.HasPrefix(cur, "~") {
-		homeDir := os.Getenv("HOME")
-		if !strings.HasSuffix(homeDir, "/") {
-			homeDir = homeDir + "/"
-		}
-
-		cur = strings.Replace(cur, "~", homeDir, 1)
-	}
-	return cur
-}
-
 type filepath struct {
 	parts    []string
 	absolute bool
@@ -217,6 +205,13 @@ func (f filepath) SearchString() string {
 		return "."
 	}
 
+	if len(f.parts) > 0 && f.parts[0] == "~" {
+		f.parts = f.parts[1:]
+		homeFilepath := parseFilepath(os.Getenv("HOME"))
+		f.parts = append(homeFilepath.parts, f.parts...)
+		f.absolute = true
+	}
+
 	prefix := ""
 	if f.absolute {
 		prefix = "/"
@@ -225,12 +220,6 @@ func (f filepath) SearchString() string {
 	suffix := ""
 	if !(f.absolute && len(f.parts) == 0) && f.dir {
 		suffix = "/"
-	}
-
-	if len(f.parts) > 0 && f.parts[0] == "~" {
-		f.parts = f.parts[1:]
-		homeFilepath := parseFilepath(os.Getenv("HOME"))
-		f.parts = append(homeFilepath.parts, f.parts...)
 	}
 
 	return prefix + strings.Join(f.parts, "/") + suffix
@@ -300,10 +289,8 @@ func walkDirs(cur string, acceptFile bool) ([]string, error) {
 	//don't filter it later on. Filter it in this function
 	dontFilterPrefix = true
 
-	//FIXME: Sub home dir in ParseFilepath
-	path := parseFilepath(substituteHomeDir(cur))
+	path := parseFilepath(cur)
 	searchPath := path
-	log.Write("SEARCH PATH PARTS: %+v\n", path.parts)
 
 	filter := ""
 	if !path.dir {
@@ -312,6 +299,7 @@ func walkDirs(cur string, acceptFile bool) ([]string, error) {
 		filter = path.parts[len(path.parts)-1]
 	}
 
+	log.Write("SEARCH PATH: %+v", searchPath.SearchString())
 	contents, err := searchPath.GetContents(acceptFile)
 	if err != nil {
 		log.Write("Erred to get contents")
