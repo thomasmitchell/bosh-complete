@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -194,19 +193,28 @@ type filepath struct {
 func parseFilepath(path string) filepath {
 	ret := filepath{}
 	rawPathParts := strings.Split(path, "/")
-	for i := 0; i < len(rawPathParts)-1; i++ {
-		if rawPathParts[i] != "" {
-			ret.parts = append(ret.parts, rawPathParts[i])
-		}
+	for i := 0; i < len(rawPathParts); i++ {
+		ret.parts = append(ret.parts, rawPathParts[i])
 	}
+
+	//Trim last section off of paths ending in "/" (directories)
+	if len(ret.parts) > 0 && ret.parts[len(ret.parts)-1] == "" {
+		ret.dir = true
+		ret.parts = ret.parts[:len(ret.parts)-1]
+	}
+
 	ret.absolute = strings.HasPrefix(path, "/")
-	ret.dir = len(ret.parts) == 0 || strings.HasSuffix(path, "/")
+	//Trim unnecessary first part if absolute
+	if ret.absolute {
+		ret.parts = ret.parts[1:]
+	}
+
 	return ret
 }
 
-func (f filepath) String() string {
+func (f filepath) SearchString() string {
 	if len(f.parts) == 0 && !f.absolute {
-		return "./"
+		return "."
 	}
 
 	prefix := ""
@@ -214,64 +222,157 @@ func (f filepath) String() string {
 		prefix = "/"
 	}
 
-	return prefix + strings.Join(f.parts, "/")
-}
-
-func walkDirs(cur string, showLeaf bool, chooseDir bool) ([]string, error) {
-	dontFilterPrefix = true
-	searchPath := parseFilepath(substituteHomeDir(cur)).String()
-	lastSlash := strings.LastIndex(cur, "/")
-	curDir := ""
-	if lastSlash >= 0 {
-		curDir = cur[:lastSlash] + "/"
+	suffix := ""
+	if !(f.absolute && len(f.parts) == 0) && f.dir {
+		suffix = "/"
 	}
 
-	log.Write("Prefix: %s", curDir)
-	log.Write("Listing %s", searchPath)
+	if len(f.parts) > 0 && f.parts[0] == "~" {
+		f.parts = f.parts[1:]
+		homeFilepath := parseFilepath(os.Getenv("HOME"))
+		f.parts = append(homeFilepath.parts, f.parts...)
+	}
 
-	contents, err := ioutil.ReadDir(searchPath)
+	return prefix + strings.Join(f.parts, "/") + suffix
+}
+
+func (f filepath) OriginalString() string {
+	prefix := ""
+	if f.absolute {
+		prefix = "/"
+	}
+
+	suffix := ""
+	if !(f.absolute && len(f.parts) == 0) && f.dir {
+		suffix = "/"
+	}
+
+	return prefix + strings.Join(f.parts, "/") + suffix
+}
+
+func (f filepath) GetContents(acceptFiles bool) ([]filepath, error) {
+	file, err := os.Open(f.SearchString())
 	if err != nil {
 		return nil, err
 	}
 
-	candidates := []string{curDir + "./", curDir + "../"}
-	if chooseDir && curDir != "" {
-		candidates = append(candidates, curDir)
+	defer file.Close()
+
+	infos, err := file.Readdir(-1)
+	if err != nil {
+		return nil, err
 	}
-	for _, content := range contents {
-		slash := ""
-		if content.IsDir() {
-			slash = "/"
-		} else if content.Mode()&os.ModeSymlink > 0 {
-			derefSymlink, err := os.Stat(searchPath + content.Name())
+
+	ret := []filepath{}
+	for _, info := range infos {
+		log.Write("INFO NAME: %+v\n", info.Name())
+		dir := info.IsDir()
+		if info.Mode() == os.ModeSymlink {
+			symlinkInfo, err := os.Stat(filepath{
+				parts:    append(f.parts, info.Name()),
+				absolute: f.absolute,
+			}.SearchString())
 			if err != nil {
 				return nil, err
 			}
-			if derefSymlink.IsDir() {
-				slash = "/"
-			}
+
+			dir = symlinkInfo.IsDir()
 		}
 
-		toAdd := fmt.Sprintf("%s%s%s", curDir, content.Name(), slash)
-		candidates = append(candidates, toAdd)
+		if !acceptFiles && !dir {
+			continue
+		}
+
+		theseParts := make([]string, len(f.parts))
+		copy(theseParts, f.parts)
+		ret = append(ret, filepath{
+			parts:    append(theseParts, info.Name()),
+			absolute: f.absolute,
+			dir:      dir,
+		})
+	}
+	return ret, nil
+}
+
+func walkDirs(cur string, acceptFile bool) ([]string, error) {
+	//We're handling our own space additions
+	dontAddSpace = true
+	//don't filter it later on. Filter it in this function
+	dontFilterPrefix = true
+
+	//FIXME: Sub home dir in ParseFilepath
+	path := parseFilepath(substituteHomeDir(cur))
+	searchPath := path
+	log.Write("SEARCH PATH PARTS: %+v\n", path.parts)
+
+	filter := ""
+	if !path.dir {
+		searchPath.parts = searchPath.parts[:len(searchPath.parts)-1]
+		searchPath.dir = true
+		filter = path.parts[len(path.parts)-1]
+	}
+
+	contents, err := searchPath.GetContents(acceptFile)
+	if err != nil {
+		log.Write("Erred to get contents")
+		return nil, err
+	}
+
+	if path.dir && len(contents) == 0 {
+		log.Write("dir with no contents")
+		dontAddSpace = false
+		return []string{cur}, nil
+	}
+
+	log.Write("CONTENTS: %+v\n", contents)
+
+	//Do our own filtering now
+	candidates := []filepath{}
+
+	if len(path.parts) > 0 {
+		lastPart := path.parts[len(path.parts)-1]
+		if lastPart == "." || lastPart == "./" || lastPart == ".." || lastPart == "../" {
+			dotPath := make([]string, len(searchPath.parts))
+			copy(dotPath, searchPath.parts)
+			dotPath = append(dotPath, ".")
+			candidates = append(candidates, filepath{parts: dotPath, dir: true, absolute: path.absolute})
+
+			dotDotPath := make([]string, len(searchPath.parts))
+			copy(dotDotPath, searchPath.parts)
+			dotDotPath = append(dotDotPath, "..")
+			candidates = append(candidates, filepath{parts: dotDotPath, dir: true, absolute: path.absolute})
+
+			if lastPart == ".." || lastPart == "../" {
+				candidates = candidates[1:]
+			}
+		}
+	}
+
+	for _, content := range contents {
+		if !acceptFile && !content.dir {
+			continue
+		}
+
+		if strings.HasPrefix(content.parts[len(content.parts)-1], filter) {
+			candidates = append(candidates, content)
+		}
+	}
+
+	//Check if we should kick out a space
+	if len(candidates) == 1 {
+		if !candidates[0].dir {
+			dontAddSpace = false
+		} else {
+			nextContents, err := walkDirs(candidates[0].SearchString(), acceptFile)
+			if err == nil && len(nextContents) == 0 { //Yes, should be == nil
+				dontAddSpace = false
+			}
+		}
 	}
 
 	ret := []string{}
-	for _, val := range candidates {
-		if (showLeaf || strings.HasSuffix(val, "/")) && strings.HasPrefix(val, cur) {
-			ret = append(ret, val)
-		}
-	}
-
-	if len(ret) == 1 && strings.HasSuffix(ret[0], "/") {
-		if !chooseDir {
-			ret, err = walkDirs(ret[0], showLeaf, chooseDir)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			dontAddSpace = true
-		}
+	for _, candidate := range candidates {
+		ret = append(ret, candidate.OriginalString())
 	}
 
 	return ret, nil

@@ -47,11 +47,11 @@ func compEnum(s ...string) func(compContext) ([]string, error) {
 }
 
 func compFiles(ctx compContext) ([]string, error) {
-	return walkDirs(ctx.CurrentToken, true, false)
+	return walkDirs(ctx.CurrentToken, true)
 }
 
 func compDirs(ctx compContext) ([]string, error) {
-	return walkDirs(ctx.CurrentToken, false, true)
+	return walkDirs(ctx.CurrentToken, false)
 }
 
 func compDeployments(ctx compContext) ([]string, error) {
