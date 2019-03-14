@@ -284,7 +284,7 @@ func (f filepath) GetContents(acceptFiles bool) ([]filepath, error) {
 }
 
 func walkDirs(cur string, acceptFile bool) ([]string, error) {
-	//We're handling our own space additions
+	//We'll re-enable the space kickout when it is correct for filepath semantics
 	dontAddSpace = true
 	//don't filter it later on. Filter it in this function
 	dontFilterPrefix = true
@@ -292,24 +292,17 @@ func walkDirs(cur string, acceptFile bool) ([]string, error) {
 	path := parseFilepath(cur)
 	searchPath := path
 
-	filter := ""
-	if !path.dir {
+	baseName := ""
+	if len(path.parts) > 0 && !path.dir {
 		searchPath.parts = searchPath.parts[:len(searchPath.parts)-1]
 		searchPath.dir = true
-		filter = path.parts[len(path.parts)-1]
+		baseName = path.parts[len(path.parts)-1]
 	}
 
 	log.Write("SEARCH PATH: %+v", searchPath.SearchString())
 	contents, err := searchPath.GetContents(acceptFile)
 	if err != nil {
-		log.Write("Erred to get contents")
 		return nil, err
-	}
-
-	if path.dir && len(contents) == 0 {
-		log.Write("dir with no contents")
-		dontAddSpace = false
-		return []string{cur}, nil
 	}
 
 	log.Write("CONTENTS: %+v\n", contents)
@@ -317,33 +310,38 @@ func walkDirs(cur string, acceptFile bool) ([]string, error) {
 	//Do our own filtering now
 	candidates := []filepath{}
 
-	if len(path.parts) > 0 {
-		lastPart := path.parts[len(path.parts)-1]
-		if lastPart == "." || lastPart == "./" || lastPart == ".." || lastPart == "../" {
-			dotPath := make([]string, len(searchPath.parts))
-			copy(dotPath, searchPath.parts)
-			dotPath = append(dotPath, ".")
-			candidates = append(candidates, filepath{parts: dotPath, dir: true, absolute: path.absolute})
-
-			dotDotPath := make([]string, len(searchPath.parts))
-			copy(dotDotPath, searchPath.parts)
-			dotDotPath = append(dotDotPath, "..")
-			candidates = append(candidates, filepath{parts: dotDotPath, dir: true, absolute: path.absolute})
-
-			if lastPart == ".." || lastPart == "../" {
-				candidates = candidates[1:]
-			}
-		}
-	}
+	//Add in ./ and ../
+	dotPath := make([]string, len(searchPath.parts))
+	copy(dotPath, searchPath.parts)
+	dotPath = append(dotPath, ".")
+	contents = append(contents, filepath{parts: dotPath, dir: true, absolute: path.absolute})
+	dotDotPath := make([]string, len(searchPath.parts))
+	copy(dotDotPath, searchPath.parts)
+	dotDotPath = append(dotDotPath, "..")
+	contents = append(contents, filepath{parts: dotDotPath, dir: true, absolute: path.absolute})
 
 	for _, content := range contents {
 		if !acceptFile && !content.dir {
 			continue
 		}
 
-		if strings.HasPrefix(content.parts[len(content.parts)-1], filter) {
-			candidates = append(candidates, content)
+		//Hide hidden files unless the user has typed a dot
+		if !strings.HasPrefix(baseName, ".") && strings.HasPrefix(content.parts[len(content.parts)-1], ".") {
+			continue
 		}
+
+		log.Write("This: %s\tBasename: %s", content.parts[len(content.parts)-1], baseName)
+
+		if strings.HasPrefix(content.parts[len(content.parts)-1], baseName) {
+			candidates = append(candidates, content)
+			continue
+		}
+		log.Write("Did not pass filter")
+	}
+
+	if path.dir && len(candidates) == 0 {
+		dontAddSpace = false
+		return []string{cur}, nil
 	}
 
 	//Check if we should kick out a space
@@ -351,9 +349,11 @@ func walkDirs(cur string, acceptFile bool) ([]string, error) {
 		if !candidates[0].dir {
 			dontAddSpace = false
 		} else {
-			nextContents, err := walkDirs(candidates[0].SearchString(), acceptFile)
+			nextContents, err := candidates[0].GetContents(acceptFile)
 			if err == nil && len(nextContents) == 0 { //Yes, should be == nil
 				dontAddSpace = false
+			} else if err != nil {
+				log.Write("An error occurred checking the next directory: %s", err)
 			}
 		}
 	}
