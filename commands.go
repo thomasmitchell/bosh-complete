@@ -710,6 +710,9 @@ func (c *commandList) Populate() {
 			//TODO: Runtime config names
 			{Long: "name", Complete: compNoop},
 		},
+		Args: []compFunc{
+			compFiles,
+		},
 	}.Insert().Alias("urc")
 
 	command{
