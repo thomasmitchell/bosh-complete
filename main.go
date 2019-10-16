@@ -5,7 +5,7 @@ import (
 	"os"
 
 	cli "github.com/jhunt/go-cli"
-	"github.com/thomasmmitchell/bosh-complete/version"
+	"github.com/thomasmitchell/bosh-complete/version"
 )
 
 var opts options

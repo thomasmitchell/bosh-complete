@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/thomasmmitchell/doomsday/storage/uaa"
+	"github.com/doomsday-project/doomsday/storage/uaa"
 )
 
 type client struct {

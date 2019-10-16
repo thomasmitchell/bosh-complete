@@ -9,7 +9,7 @@ ifneq ("$(DIRTY_LINE)", "")
 endif
 #Don't lead this with a v
 VERSION ?= development
-LDFLAGS := -X "github.com/thomasmmitchell/bosh-complete/version.Version=$(VERSION)-$(COMMIT_HASH)$(DIRTY)"
+LDFLAGS := -X "github.com/thomasmitchell/bosh-complete/version.Version=$(VERSION)-$(COMMIT_HASH)$(DIRTY)"
 BUILD := go build -v -ldflags='$(LDFLAGS)' -o $(OUTPUT_NAME) $(BUILD_TARGET)
 
 .PHONY: build darwin linux all clean
