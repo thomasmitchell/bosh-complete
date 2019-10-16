@@ -37,5 +37,5 @@ func (l logger) Write(f string, args ...interface{}) {
 	if !l.on {
 		return
 	}
-	l.f.Write([]byte(fmt.Sprintf("%s\n", fmt.Sprintf(f, args...))))
+	_, _ = l.f.Write([]byte(fmt.Sprintf("%s\n", fmt.Sprintf(f, args...))))
 }

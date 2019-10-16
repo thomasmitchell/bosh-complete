@@ -245,7 +245,7 @@ func (f filepath) GetContents(acceptFiles bool) ([]filepath, error) {
 		return nil, err
 	}
 
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	infos, err := file.Readdir(-1)
 	if err != nil {

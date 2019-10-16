@@ -21,8 +21,7 @@ type compContext struct {
 	//Long flag string of the current flag that is being completed
 	CurrentFlag string
 	//Long flag string to value(s)
-	Flags    map[string][]string
-	Switches []string
+	Flags map[string][]string
 }
 
 func (c *compContext) InsertIfEnvvar(envvar, flag string) {
@@ -154,7 +153,6 @@ func parseContext(args []string) compContext {
 			ret.CurrentFlag = "--" + f.Long
 			if f.Complete == nil {
 				log.Write("current flag is switch: %s", ret.CurrentFlag)
-				ret.Switches = append(ret.Switches)
 				ret.CurrentFlag = ""
 			}
 		} else {

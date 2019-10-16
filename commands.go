@@ -395,6 +395,7 @@ func (c *commandList) Populate() {
 			{Long: "var-errs"},
 			{Long: "var-errs-unused"},
 		},
+		Args: []compFunc{compFiles},
 	}.Insert().Alias("int")
 
 	command{

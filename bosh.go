@@ -26,8 +26,6 @@ type client struct {
 	cache             map[string]string
 }
 
-type boshAuthType uint32
-
 type boshInfo struct {
 	Auth struct {
 		Type    string `json:"type"`
@@ -107,7 +105,7 @@ func (c *client) fetchAuthHeader() (string, error) {
 			SkipTLSValidation: true,
 		}
 
-		authResp := &uaa.AuthResponse{}
+		var authResp *uaa.AuthResponse
 		if c.RefreshToken != "" {
 			log.Write("Performing refresh token grant UAA auth")
 			authResp, err = uaac.Refresh("bosh_cli", "", c.RefreshToken)

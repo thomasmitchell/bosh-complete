@@ -34,7 +34,7 @@ func doBashSource() {
 	if err != nil {
 		panic("Could not determine executable location")
 	}
-	tmpl.Execute(os.Stdout, struct {
+	err = tmpl.Execute(os.Stdout, struct {
 		Executable string
 		Bosh       string
 		Debug      string
@@ -43,4 +43,7 @@ func doBashSource() {
 		Bosh:       "bosh",
 		Debug:      debug,
 	})
+	if err != nil {
+		panic("Could not render source template for bash")
+	}
 }
