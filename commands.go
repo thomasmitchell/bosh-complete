@@ -500,6 +500,9 @@ func (c *commandList) Populate() {
 			{Long: "canaries", Complete: compNoop},
 			{Long: "max-in-flight", Complete: compNoop},
 		},
+		Args: []compFunc{
+			compOr(compInstanceGroups, compInstances),
+		},
 	}.Insert()
 
 	command{
