@@ -44,6 +44,11 @@ func (c *commandList) Populate() {
 		Flags: []flag{
 			{Long: "disk-properties", Complete: compNoop},
 		},
+		Args: []compFunc{
+			compInstances,
+			// TODO: get disk-cid
+			compNoop,
+		},
 	}.Insert()
 
 	command{
@@ -53,11 +58,24 @@ func (c *commandList) Populate() {
 
 	command{
 		Name: "cancel-task",
+		// TODO: get active task ids
 	}.Insert().Alias("ct")
 
 	command{
+		Name: "cancel-tasks",
+		Flags: []flag{
+			{Long: "type", Complete: compEnum("cck_scan_and_fix", "cck_apply", "update_release", "update_deployment", "vms", "etc", "all")},
+			{Long: "state", Complete: compEnum("queued", "processing")},
+		},
+	}.Insert().Alias("cts")
+
+	command{
 		Name:  "clean-up",
-		Flags: []flag{{Long: "all"}},
+		Flags: []flag{
+			{Long: "all"},
+			{Long: "dry-run"},
+			{Long: "keep-orphaned-disks"},
+		},
 	}.Insert()
 
 	command{
@@ -129,10 +147,17 @@ func (c *commandList) Populate() {
 			{Long: "tarball", Complete: compFiles},
 			{Long: "force"},
 		},
+		Args: []compFunc{compFiles},
 	}.Insert().Alias("cr")
 
 	command{
 		Name: "curl",
+		Flags: []flag{
+			{Long: "method", Short: 'X', Complete: compEnum("PUT", "GET")},
+			{Long: "header", Short: 'H', Complete: compNoop},
+			{Long: "body", Complete: compFiles},
+			{Long: "show-headers", Short: 'i'},
+		},
 		Args: []compFunc{
 			compNoop,
 		},
@@ -203,7 +228,7 @@ func (c *commandList) Populate() {
 
 	command{
 		Name: "delete-snapshots",
-	}.Insert().Alias("dels")
+	}.Insert()
 
 	command{
 		Name:  "delete-stemcell",
@@ -211,7 +236,7 @@ func (c *commandList) Populate() {
 		Args: []compFunc{
 			compUnusedStemcells,
 		},
-	}.Insert()
+	}.Insert().Alias("dels")
 
 	command{
 		Name: "delete-vm",
@@ -235,8 +260,10 @@ func (c *commandList) Populate() {
 			{Long: "recreate"},
 			{Long: "recreate-persistent-disks"},
 			{Long: "fix"},
+			{Long: "fix-releases"},
 			//TODO: skip-drain -> get instance groups from manifest
 			{Long: "skip-drain", Complete: compNoop},
+			{Long: "canaries", Complete: compNoop},
 			{Long: "max-in-flight", Complete: compNoop},
 			{Long: "dry-run"},
 		},
@@ -249,7 +276,7 @@ func (c *commandList) Populate() {
 
 	command{
 		Name: "deployments",
-	}.Insert().Alias("ds")
+	}.Insert().Alias("ds").Alias("deps")
 
 	command{
 		Name: "diff-config",
@@ -265,11 +292,12 @@ func (c *commandList) Populate() {
 
 	command{
 		Name:  "disks",
-		Flags: []flag{{Long: "orphaned"}},
+		Flags: []flag{{Long: "orphaned", Short: 'o'}},
 	}.Insert()
 
 	command{
 		Name: "environment",
+		Flags: []flag{{Long: "details"}},
 	}.Insert().Alias("env")
 
 	command{
@@ -340,6 +368,12 @@ func (c *commandList) Populate() {
 	}.Insert()
 
 	command{
+		Name:  "generate-package",
+		Flags: []flag{{Long: "dir", Complete: compDirs}},
+		Args:  []compFunc{compNoop},
+	}.Insert()
+
+	command{
 		Name: "help",
 	}.Insert()
 
@@ -356,6 +390,11 @@ func (c *commandList) Populate() {
 			{Long: "dir", Complete: compDirs},
 			{Long: "git"},
 		},
+	}.Insert()
+
+	command{
+		Name: "inspect-local-release",
+		Args: []compFunc{compFiles},
 	}.Insert()
 
 	command{
@@ -453,11 +492,12 @@ func (c *commandList) Populate() {
 		Name: "recreate",
 		Flags: []flag{
 			{Long: "skip-drain"},
-			{Long: "force"},
 			{Long: "fix"},
 			{Long: "canaries", Complete: compNoop},
 			{Long: "max-in-flight", Complete: compNoop},
 			{Long: "dry-run"},
+			{Long: "converge"},
+			{Long: "no-converge"},
 		},
 		Args: []compFunc{
 			compOr(compInstanceGroups, compInstances),
@@ -485,6 +525,10 @@ func (c *commandList) Populate() {
 			{Long: "format", Complete: compNoop},
 			{Long: "version", Complete: compNoop},
 		},
+		Args: []compFunc{
+			compFiles, //TODO: Path to stemcell
+			compFiles, //TODO: Path to repackaged stemcell
+		},
 	}.Insert()
 
 	command{
@@ -496,9 +540,10 @@ func (c *commandList) Populate() {
 		Name: "restart",
 		Flags: []flag{
 			{Long: "skip-drain"},
-			{Long: "force"},
 			{Long: "canaries", Complete: compNoop},
 			{Long: "max-in-flight", Complete: compNoop},
+			{Long: "converge"},
+			{Long: "no-converge"},
 		},
 		Args: []compFunc{
 			compOr(compInstanceGroups, compInstances),
@@ -508,7 +553,7 @@ func (c *commandList) Populate() {
 	command{
 		Name: "run-errand",
 		Flags: []flag{
-			{Long: "instance", Complete: compInstances},
+			{Long: "instance", Complete: compOr(compInstanceGroups, compInstances)},
 			{Long: "keep-alive"},
 			{Long: "when-changed"},
 			{Long: "download-logs"},
@@ -528,6 +573,8 @@ func (c *commandList) Populate() {
 		Name: "scp",
 		Flags: []flag{
 			{Long: "recursive", Short: 'r'},
+			{Long: "private-key", Short: 'i', Complete: compFiles},
+			{Long: "username", Short: 'l', Complete: compNoop},
 			{Long: "gw-disable"},
 			{Long: "gw-user", Complete: compNoop},
 			{Long: "gw-host", Complete: compNoop},
@@ -537,6 +584,22 @@ func (c *commandList) Populate() {
 		Args: []compFunc{
 			compFiles, //TODO: at least instance group/id... maybe use ssh to ls if thats not too slow?
 			//TODO: "or" that with files on the local file system
+			compFiles,
+		},
+	}.Insert()
+
+	command{
+		Name: "sha1ify-release",
+		Args: []compFunc{
+			compFiles, 
+			compFiles,
+		},
+	}.Insert()
+
+	command{
+		Name: "sha2ify-release",
+		Args: []compFunc{
+			compFiles, 
 			compFiles,
 		},
 	}.Insert()
@@ -554,6 +617,8 @@ func (c *commandList) Populate() {
 			{Long: "command", Short: 'c', Complete: compNoop},
 			{Long: "opts", Complete: compNoop},
 			{Long: "results", Short: 'r'},
+			{Long: "private-key", Short: 'i', Complete: compFiles},
+			{Long: "username", Short: 'l', Complete: compNoop},
 			{Long: "gw-disable"},
 			{Long: "gw-user", Complete: compNoop},
 			{Long: "gw-host", Complete: compNoop},
@@ -561,16 +626,17 @@ func (c *commandList) Populate() {
 			{Long: "gw-socks5", Complete: compFiles},
 		},
 		Args: []compFunc{
-			compInstances,
+			compOr(compInstanceGroups, compInstances, compNoop), // TODO : Ip Parsing
 		},
 	}.Insert()
 
 	command{
 		Name: "start",
 		Flags: []flag{
-			{Long: "force"},
 			{Long: "canaries", Complete: compNoop},
 			{Long: "max-in-flight", Complete: compNoop},
+			{Long: "converge"},
+			{Long: "no-converge"},
 		},
 		Args: []compFunc{
 			compOr(compInstanceGroups, compInstances),
@@ -587,9 +653,10 @@ func (c *commandList) Populate() {
 			{Long: "soft"},
 			{Long: "hard"},
 			{Long: "skip-drain"},
-			{Long: "force"},
 			{Long: "canaries", Complete: compNoop},
 			{Long: "max-in-flight", Complete: compNoop},
+			{Long: "converge"},
+			{Long: "no-converge"},
 		},
 		Args: []compFunc{
 			compOr(compInstanceGroups, compInstances),
@@ -625,7 +692,7 @@ func (c *commandList) Populate() {
 	command{
 		Name: "tasks",
 		Flags: []flag{
-			{Long: "recent", Complete: compNoop},
+			{Long: "recent", Short: 'r', Complete: compNoop},
 			{Long: "all", Short: 'a'},
 		},
 	}.Insert().Alias("ts")
@@ -713,6 +780,7 @@ func (c *commandList) Populate() {
 			{Long: "no-redact"},
 			//TODO: Runtime config names
 			{Long: "name", Complete: compNoop},
+			{Long: "fix-releases"},
 		},
 		Args: []compFunc{
 			compFiles,
